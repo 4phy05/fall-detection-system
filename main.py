@@ -23,9 +23,9 @@ def predict_and_detect(chosen_model, img, classes=[], conf=0.5, rectangle_thickn
     return img, results
 
 # read the image
-image = cv2.imread("D:/graduation_project/859h63379p0.jpg")
+image = cv2.imread("/Users/applychart/Documents/graduation_project/image.png")
 result_img, _ = predict_and_detect(model, image, classes=[], conf=0.5)
 
 cv2.imshow("Image", result_img)
-cv2.imwrite("D:/graduation_project/859h63379p0.jpg", result_img)
+cv2.imwrite("/Users/applychart/Documents/graduation_project/new.png", result_img)
 cv2.waitKey(0)
