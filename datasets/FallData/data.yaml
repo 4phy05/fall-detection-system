@@ -1,9 +1,0 @@
-train: D:\graduation_project\datasets\FallData\train  # train images (relative to 'path') 128 images
-val: D:\graduation_project\datasets\FallData\val  # val images (relative to 'path') 128 images
-test:  # val images (optional)
-
-# number of classes
-nc: 1
-
-# Classes
-names: ['Fall']
