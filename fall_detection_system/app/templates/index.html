@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}首页{% endblock %}
+
+{% block content %}
+<style>
+    .index-content {
+        min-height: 80vh;
+        background-image: url('{% static "images/background.jpg" %}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+
+    .index-text {
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-top: 5rem;
+        max-width: 600px;
+    }
+
+    /* 滑动图片样式 */
+    .scrolling-images-container {
+        position: relative;
+        margin: 2rem auto;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        max-width: 65%;  /* 确保在小屏幕上也能正常显示 */
+    }
+
+    .scrolling-images-wrapper {
+        display: flex;
+        transition: transform 0.5s ease-in-out;
+        width: calc(100% * 8);  /* 8张图片的总宽度 */
+        height: 100%;
+    }
+
+    .scrolling-images-wrapper img {
+        width: calc(100% / 8);  /* 每张图片占据1/8宽度 */
+        height: 100%;
+        object-fit: cover;
+        flex-shrink: 0;  /* 防止图片被压缩 */
+    }
+
+    /* 可以添加悬停效果 */
+    .scrolling-images-wrapper img:hover {
+        transform: scale(1.02);
+        transition: transform 0.3s ease;
+    }
+
+    /* 页脚样式 */
+    .index-footer {
+        text-align: center;
+        padding: 1rem;
+        background-color: #ffffff;
+        margin-top: 20px;
+    }
+
+    .index-footer a {
+        color: purple;
+        text-decoration: none;
+        margin: 0 10px;
+    }
+
+    .index-footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<div class="index-content">
+    <div class="index-text">
+        <h1>欢迎来到跌倒检测网站</h1>
+        <p>提供在线的跌倒检测判断</p>
+    </div>
+</div>
+
+<!-- 自动滑动图片容器 -->
+<div class="scrolling-images-container">
+    <div class="scrolling-images-wrapper" id="imageWrapper">
+        <!-- 在开头添加最后一张图片 -->
+        <img src="{% static 'images/6.jpg' %}" alt="Image 6">
+        <!-- 原有的图片序列 -->
+        <img src="{% static 'images/1.jpg' %}" alt="Image 1">
+        <img src="{% static 'images/2.jpg' %}" alt="Image 2">
+        <img src="{% static 'images/3.jpg' %}" alt="Image 3">
+        <img src="{% static 'images/4.jpg' %}" alt="Image 4">
+        <img src="{% static 'images/5.jpg' %}" alt="Image 5">
+        <img src="{% static 'images/6.jpg' %}" alt="Image 6">
+        <!-- 在末尾添加第一张图片 -->
+        <img src="{% static 'images/1.jpg' %}" alt="Image 1">
+    </div>
+</div>
+
+<!-- 仅在首页显示的页脚 -->
+{% if not user.is_authenticated %}
+<footer class="index-footer">
+    <p>请先 <a href="{% url 'login' %}">登录</a> 或 <a href="{% url 'register' %}">注册</a></p>
+</footer>
+{% endif %}
+
+<script>
+    const imageWrapper = document.getElementById('imageWrapper');
+    const images = document.querySelectorAll('.scrolling-images-wrapper img');
+    let currentIndex = 1;  // 从第一张实际图片开始
+    
+    // 设置初始位置
+    imageWrapper.style.transform = `translateX(-${currentIndex * (100/8)}%)`;
+
+    function autoSlide() {
+        currentIndex++;
+        imageWrapper.style.transform = `translateX(-${currentIndex * (100/8)}%)`;
+        
+        // 当滑动到最后一张图片时
+        if (currentIndex >= images.length - 1) {
+            // 等待过渡动画完成后瞬间跳回第一张
+            setTimeout(() => {
+                imageWrapper.style.transition = 'none';
+                currentIndex = 1;
+                imageWrapper.style.transform = `translateX(-${currentIndex * (100/8)}%)`;
+                // 重新启用过渡效果
+                setTimeout(() => {
+                    imageWrapper.style.transition = 'transform 0.5s ease-in-out';
+                }, 50);
+            }, 500);
+        }
+    }
+
+    // 设置自动滑动间隔为5秒
+    setInterval(autoSlide, 5000);
+
+    // 添加过渡结束事件监听
+    imageWrapper.addEventListener('transitionend', () => {
+        // 如果到达最后一张，立即跳回第一张
+        if (currentIndex >= images.length - 1) {
+            imageWrapper.style.transition = 'none';
+            currentIndex = 1;
+            imageWrapper.style.transform = `translateX(-${currentIndex * (100/8)}%)`;
+            setTimeout(() => {
+                imageWrapper.style.transition = 'transform 0.5s ease-in-out';
+            }, 50);
+        }
+    });
+</script>
+{% endblock %}
