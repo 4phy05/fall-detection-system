@@ -133,3 +133,10 @@ MESSAGE_TAGS = {
     messages.WARNING: 'warning',
     messages.ERROR: 'error',
 }
+
+# 媒体文件配置
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# 允许上传的最大文件大小（例如：10MB）
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760

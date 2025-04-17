@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}需要登录{% endblock %}
+
+{% block content %}
+<style>
+    .login-required-container {
+        max-width: 600px;
+        margin: 4rem auto;
+        padding: 2rem;
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .login-required-container h2 {
+        color: #333;
+        margin-bottom: 1.5rem;
+    }
+
+    .login-required-container p {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+    }
+
+    .auth-links {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .auth-link {
+        padding: 10px 30px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .login-link {
+        background-color: #007bff;
+        color: white;
+        border: 1px solid #007bff;
+    }
+
+    .register-link {
+        background-color: white;
+        color: #007bff;
+        border: 1px solid #007bff;
+    }
+
+    .login-link:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    .register-link:hover {
+        background-color: #f8f9fa;
+    }
+
+    .message {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 4px;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+</style>
+
+<div class="login-required-container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>需要登录</h2>
+    <p>要使用跌倒检测功能，请先登录您的账号</p>
+    
+    <div class="auth-links">
+        <a href="{% url 'login' %}" class="auth-link login-link">登录</a>
+        <a href="{% url 'register' %}" class="auth-link register-link">注册</a>
+    </div>
+</div>
+{% endblock %} 

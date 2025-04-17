@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}跌倒检测{% endblock %}
+
+{% block content %}
+<style>
+    .detection-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-section {
+        text-align: center;
+        padding: 2rem;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .upload-section.dragover {
+        border-color: #007bff;
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .upload-btn {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 10px;
+    }
+
+    .upload-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .preview-section {
+        margin-top: 2rem;
+        text-align: center;
+    }
+
+    .preview-image, .preview-video {
+        max-width: 100%;
+        max-height: 400px;
+        margin: 1rem 0;
+    }
+
+    .result-section {
+        margin-top: 2rem;
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+    }
+
+    .loading {
+        display: none;
+        text-align: center;
+        margin: 1rem 0;
+    }
+
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .message {
+        padding: 10px;
+        margin: 1rem 0;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .message-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .message-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+</style>
+
+<div class="detection-container">
+    <h2>跌倒检测</h2>
+    <div class="upload-section" id="dropZone">
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="fileInput" class="file-input" name="file" accept="image/*,video/*">
+            <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                选择文件
+            </button>
+            <p>或将文件拖放到此处</p>
+            <p class="small text-muted">支持的格式：图片(jpg, png, jpeg) / 视频(mp4, avi)</p>
+        </form>
+    </div>
+
+    <div class="preview-section" id="previewSection" style="display: none;">
+        <h3>预览</h3>
+        <img id="previewImage" class="preview-image" style="display: none;">
+        <video id="previewVideo" class="preview-video" controls style="display: none;"></video>
+        <button class="upload-btn" onclick="startDetection()">开始检测</button>
+    </div>
+
+    <div class="loading" id="loadingSection">
+        <div class="loading-spinner"></div>
+        <p>正在进行检测，请稍候...</p>
+    </div>
+
+    <div class="result-section" id="resultSection" style="display: none;">
+        <h3>检测结果</h3>
+        <div id="resultContent"></div>
+    </div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const previewSection = document.getElementById('previewSection');
+    const previewImage = document.getElementById('previewImage');
+    const previewVideo = document.getElementById('previewVideo');
+    const loadingSection = document.getElementById('loadingSection');
+    const resultSection = document.getElementById('resultSection');
+
+    // 拖放功能
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        const validVideoTypes = ['video/mp4', 'video/avi'];
+
+        if (validImageTypes.includes(file.type)) {
+            previewImage.style.display = 'block';
+            previewVideo.style.display = 'none';
+            previewImage.src = URL.createObjectURL(file);
+        } else if (validVideoTypes.includes(file.type)) {
+            previewImage.style.display = 'none';
+            previewVideo.style.display = 'block';
+            previewVideo.src = URL.createObjectURL(file);
+        } else {
+            alert('请上传支持的文件格式！');
+            return;
+        }
+
+        previewSection.style.display = 'block';
+    }
+
+    function startDetection() {
+        const formData = new FormData(document.getElementById('uploadForm'));
+        const file = fileInput.files[0];
+        
+        loadingSection.style.display = 'block';
+        resultSection.style.display = 'none';
+
+        // 判断是否为视频文件
+        const isVideo = file.type.startsWith('video/');
+        
+        if (isVideo) {
+            // 视频检测的处理逻辑
+            let frameCount = 0;
+            
+            function pollProgress() {
+                fetch('{% url "detect" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'processing') {
+                        // 更新进度显示
+                        frameCount = data.frame;
+                        loadingSection.innerHTML = `
+                            <div class="loading-spinner"></div>
+                            <p>正在处理视频，已处理 ${frameCount} 帧...</p>
+                        `;
+                        // 继续轮询
+                        setTimeout(pollProgress, 1000);
+                    } else if (data.status === 'completed') {
+                        // 处理完成，显示结果
+                        loadingSection.style.display = 'none';
+                        resultSection.style.display = 'block';
+                        resultContent.innerHTML = `
+                            <div class="message message-success">
+                                <video controls style="max-width: 100%; height: auto;">
+                                    <source src="${data.result_path}" type="video/mp4">
+                                    您的浏览器不支持视频标签。
+                                </video>
+                                <p>${data.message}</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    handleError(error);
+                });
+            }
+
+            // 开始轮询进度
+            pollProgress();
+        } else {
+            // 图片检测的处理逻辑（保持原有）
+            fetch('{% url "detect" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSection.style.display = 'none';
+                resultSection.style.display = 'block';
+                
+                if (data.success) {
+                    resultContent.innerHTML = `
+                        <div class="message message-success">
+                            <img src="${data.result_image}" alt="检测结果" style="max-width: 100%; height: auto;">
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                } else {
+                    handleError(data.message);
+                }
+            })
+            .catch(error => {
+                handleError(error);
+            });
+        }
+    }
+
+    function handleError(error) {
+        loadingSection.style.display = 'none';
+        resultSection.style.display = 'block';
+        resultContent.innerHTML = `
+            <div class="message message-error">
+                <p>检测过程中出现错误，请重试</p>
+                <p>${error}</p>
+            </div>
+        `;
+    }
+</script>
+{% endblock %} 
