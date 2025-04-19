@@ -64,125 +64,218 @@ def user_logout(request):
     logout(request)
     return redirect('index')
 
-def detection_view(request):
-    # 检查用户是否已登录
-    if not request.user.is_authenticated:
-        messages.warning(request, '请先登录后再进行检测！')
-        return render(request, 'detection_login_required.html')
-    return render(request, 'detection.html')
-
 @login_required
-@csrf_exempt
-def detect(request):
-    if request.method == 'POST' and request.FILES.get('file'):
+def detection_view(request):
+    if request.method == 'POST':
+        # 确保上传目录存在
+        ensure_upload_dir()
+        
+        detection_type = request.POST.get('detection_type')
+        print(f"接收到的检测类型: {detection_type}")
+        print(f"POST数据: {request.POST}")
+        print(f"FILES数据: {request.FILES}")  # 检查是否收到文件
+        
         try:
-            # 创建上传文件目录
-            upload_dir = os.path.join(settings.MEDIA_ROOT, 'upload_files')
-            os.makedirs(upload_dir, exist_ok=True)
-
-            # 清理之前的文件
-            clean_directory(upload_dir)
-
-            # 获取上传的文件
-            uploaded_file = request.FILES['file']
-            file_extension = os.path.splitext(uploaded_file.name)[1].lower()
-            
-            # 生成唯一文件名
-            timestamp = int(time.time())
-            filename = f"upload_{timestamp}{file_extension}"
-            file_path = os.path.join(upload_dir, filename)
-
-            # 保存上传的文件
-            with open(file_path, 'wb+') as destination:
-                for chunk in uploaded_file.chunks():
-                    destination.write(chunk)
-
-            # 判断文件类型
-            is_video = file_extension in ['.mp4', '.avi']
-            
-            if is_video:
-                # 视频处理
-                model = YOLO('app/static/models/best.pt')
-                # 创建结果视频目录
-                result_filename = f"result_{timestamp}{file_extension}"
-                result_path = os.path.join(upload_dir, result_filename)
-                
-                # 使用YOLO处理视频
-                results = model(file_path, stream=True)  # 流式处理
-                
-                # 获取视频信息
-                cap = cv2.VideoCapture(file_path)
-                fps = int(cap.get(cv2.CAP_PROP_FPS))
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                cap.release()
-
-                # 创建视频写入器
-                out = cv2.VideoWriter(
-                    result_path,
-                    cv2.VideoWriter_fourcc(*'mp4v'),
-                    fps,
-                    (width, height)
-                )
-
-                # 处理每一帧
-                frame_count = 0
-                for r in results:
-                    frame_count += 1
-                    # 绘制检测框
-                    im_array = r.plot()
-                    # 写入帧
-                    out.write(im_array)
-                    
-                    # 每处理10帧发送一次进度更新
-                    if frame_count % 10 == 0:
-                        progress = {
-                            'type': 'video',
-                            'frame': frame_count,
-                            'status': 'processing'
-                        }
-                        return JsonResponse(progress)
-
-                # 释放视频写入器
-                out.release()
-                
-                # 处理完成，返回结果视频路径
-                return JsonResponse({
-                    'success': True,
-                    'type': 'video',
-                    'message': '视频检测完成',
-                    'result_path': f"/media/upload_files/{result_filename}",
-                    'status': 'completed'
-                })
+            if detection_type == 'camera':
+                return handle_camera_detection(request)
+            elif detection_type == 'video':
+                return handle_video_detection(request)
+            elif detection_type == 'image':
+                return handle_image_detection(request)
             else:
-                # 图片处理（保持原有逻辑）
-                model = YOLO('app/static/models/best.pt')
-                results = model(file_path)
-                
-                result_filename = f"result_{timestamp}{file_extension}"
-                result_path = os.path.join(upload_dir, result_filename)
-                
-                for r in results:
-                    im_array = r.plot()
-                    r.save(result_path)
-
                 return JsonResponse({
-                    'success': True,
-                    'type': 'image',
-                    'message': '图片检测完成',
-                    'result_image': f"/media/upload_files/{result_filename}"
+                    'success': False,
+                    'message': f'未知的检测类型：{detection_type}'
                 })
-
         except Exception as e:
             return JsonResponse({
                 'success': False,
                 'message': f'检测失败: {str(e)}'
             })
     
-    return JsonResponse({
-        'success': False,
-        'message': '请上传有效的文件'
-    })
+    return render(request, 'detection.html')
+
+@login_required
+def handle_camera_detection(request):
+    try:
+        # 初始化摄像头
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            return JsonResponse({
+                'success': False,
+                'message': '无法访问摄像头'
+            })
+            
+        # 加载YOLO模型
+        model = YOLO('app/static/models/best.pt')
+        
+        # 捕获一帧
+        ret, frame = cap.read()
+        if not ret:
+            return JsonResponse({
+                'success': False,
+                'message': '无法获取摄像头画面'
+            })
+            
+        # 进行检测
+        results = model(frame)
+        
+        # 生成唯一文件名
+        timestamp = str(int(time.time() * 1000))
+        result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'camera_{timestamp}.jpg')
+        
+        # 保存检测结果
+        for r in results:
+            im_array = r.plot()
+            r.save(result_path)
+        
+        # 释放摄像头
+        cap.release()
+        
+        return JsonResponse({
+            'success': True,
+            'type': 'camera',
+            'message': '摄像头检测完成',
+            'result_image': f'/media/upload_files/camera_{timestamp}.jpg'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'摄像头检测出错：{str(e)}'
+        })
+
+@login_required
+def handle_video_detection(request):
+    try:
+        video_file = request.FILES.get('file')
+        if not video_file:
+            return JsonResponse({
+                'success': False,
+                'message': '请选择视频文件'
+            })
+            
+        # 检查文件类型
+        if not video_file.name.lower().endswith(('.mp4', '.avi')):
+            return JsonResponse({
+                'success': False,
+                'message': '请上传 mp4 或 avi 格式的视频'
+            })
+            
+        # 生成唯一文件名
+        timestamp = str(int(time.time() * 1000))
+        video_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'upload_{timestamp}.mp4')
+        result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'result_{timestamp}.mp4')
+        
+        # 保存上传的视频
+        with open(video_path, 'wb+') as destination:
+            for chunk in video_file.chunks():
+                destination.write(chunk)
+                
+        # 加载YOLO模型
+        model = YOLO('app/static/models/best.pt')
+        
+        # 处理视频
+        cap = cv2.VideoCapture(video_path)
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # 创建视频写入器
+        out = cv2.VideoWriter(result_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+        
+        frame_count = 0
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            # 进行检测
+            results = model(frame)
+            detected_frame = results[0].plot()
+            out.write(detected_frame)
+            
+            frame_count += 1
+            progress = int((frame_count / total_frames) * 100)
+            
+        cap.release()
+        out.release()
+        
+        return JsonResponse({
+            'success': True,
+            'type': 'video',
+            'message': '视频检测完成',
+            'result_path': f'/media/upload_files/result_{timestamp}.mp4',
+            'progress': 100
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'视频处理出错：{str(e)}'
+        })
+
+@login_required
+def handle_image_detection(request):
+    try:
+        image_file = request.FILES.get('file')
+        if not image_file:
+            print("没有接收到文件")  # 调试信息
+            return JsonResponse({
+                'success': False,
+                'message': '请选择图片文件'
+            })
+            
+        print(f"接收到文件：{image_file.name}")  # 调试信息
+        
+        # 检查文件类型
+        if not image_file.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+            return JsonResponse({
+                'success': False,
+                'message': '请上传 jpg、jpeg 或 png 格式的图片'
+            })
+            
+        # 生成唯一文件名
+        timestamp = str(int(time.time() * 1000))
+        image_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'upload_{timestamp}.jpg')
+        
+        print(f"准备保存文件到：{image_path}")  # 调试信息
+        
+        # 确保目录存在
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        
+        # 保存上传的图片
+        with open(image_path, 'wb+') as destination:
+            for chunk in image_file.chunks():
+                destination.write(chunk)
+                
+        print(f"文件已保存到：{image_path}")  # 调试信息
+        
+        # 加载YOLO模型
+        model = YOLO('app/static/models/best.pt')
+        
+        # 进行检测
+        results = model(image_path)
+        
+        # 保存检测结果
+        for r in results:
+            im_array = r.plot()
+            r.save(image_path)
+        
+        return JsonResponse({
+            'success': True,
+            'type': 'image',
+            'message': '图片检测完成',
+            'result_image': f'/media/upload_files/result_{timestamp}.jpg'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'图片处理出错：{str(e)}'
+        })
 
 def clean_directory(directory):
     """清理指定目录中的所有文件"""
@@ -198,3 +291,16 @@ def clean_directory(directory):
                 print(f'Error deleting {file_path}: {str(e)}')
     except Exception as e:
         print(f'Error cleaning directory {directory}: {str(e)}')
+
+@login_required
+def get_video_progress(request):
+    video_id = request.GET.get('video_id')
+    if video_id:
+        progress = request.session.get(f'video_progress_{video_id}', 0)
+        return JsonResponse({'progress': progress})
+    return JsonResponse({'progress': 0})
+
+def ensure_upload_dir():
+    upload_dir = os.path.join(settings.MEDIA_ROOT, 'upload_files')
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)

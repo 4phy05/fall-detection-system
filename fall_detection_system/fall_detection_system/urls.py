@@ -29,5 +29,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('logout/', views.user_logout, name='logout'),
     path('detection/', views.detection_view, name='detection'),
-    path('detect/', views.detect, name='detect'),
+    path('detect/', views.detection_view, name='detect'),
+    path('video-progress/', views.get_video_progress, name='video_progress'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
