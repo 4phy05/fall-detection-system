@@ -12,6 +12,7 @@ import shutil
 from django.conf import settings
 import time
 import cv2
+import numpy as np
 
 # 首页
 def index(request):
@@ -67,8 +68,9 @@ def user_logout(request):
 @login_required
 def detection_view(request):
     if request.method == 'POST':
-        # 确保上传目录存在
+        # 确保上传目录存在并清空
         ensure_upload_dir()
+        clean_directory(os.path.join(settings.MEDIA_ROOT, 'upload_files'))
         
         detection_type = request.POST.get('detection_type')
         print(f"接收到的检测类型: {detection_type}")
@@ -98,51 +100,57 @@ def detection_view(request):
 @login_required
 def handle_camera_detection(request):
     try:
-        # 初始化摄像头
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
+        # 从 POST 请求中获取上传的文件 'file'
+        image_file = request.FILES.get('file')
+        if not image_file:
             return JsonResponse({
                 'success': False,
-                'message': '无法访问摄像头'
+                'message': '未接收到摄像头捕捉的图像'
             })
-            
+
+        # 将上传的文件内容读入内存
+        image_data = image_file.read()
+        # 将内存中的图像数据解码为 OpenCV 格式
+        nparr = np.frombuffer(image_data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+             return JsonResponse({
+                'success': False,
+                'message': '无法解码接收到的图像数据'
+            })
+
         # 加载YOLO模型
         model = YOLO('app/static/models/best.pt')
-        
-        # 捕获一帧
-        ret, frame = cap.read()
-        if not ret:
-            return JsonResponse({
-                'success': False,
-                'message': '无法获取摄像头画面'
-            })
-            
+
         # 进行检测
-        results = model(frame)
-        
+        results = model(frame) # 直接对解码后的 frame 进行检测
+
         # 生成唯一文件名
         timestamp = str(int(time.time() * 1000))
-        result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'camera_{timestamp}.jpg')
-        
-        # 保存检测结果
-        for r in results:
-            im_array = r.plot()
-            r.save(result_path)
-        
-        # 释放摄像头
-        cap.release()
-        
+        result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'camera_result_{timestamp}.jpg')
+        result_url = f'/media/upload_files/camera_result_{timestamp}.jpg'
+
+        # 保存检测结果图像 (处理后的图像)
+        # results[0].plot() 返回带有标注的图像 numpy 数组
+        annotated_frame = results[0].plot()
+        # 使用 cv2.imwrite 保存 numpy 数组图像
+        cv2.imwrite(result_path, annotated_frame)
+
+        # 注意：这里不再需要 cap.release()
+
         return JsonResponse({
             'success': True,
-            'type': 'camera',
-            'message': '摄像头检测完成',
-            'result_image': f'/media/upload_files/camera_{timestamp}.jpg'
+            'type': 'camera', # 保持类型为 camera
+            'message': '摄像头单帧检测完成',
+            'result_image': result_url # 返回处理后图像的 URL
         })
-        
+
     except Exception as e:
+        print(f"摄像头处理出错: {str(e)}") # 打印更详细的错误日志
         return JsonResponse({
             'success': False,
-            'message': f'摄像头检测出错：{str(e)}'
+            'message': f'摄像头检测处理出错：{str(e)}'
         })
 
 @login_required
@@ -181,9 +189,21 @@ def handle_video_detection(request):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
+        # 尝试使用 H.264 (AVC) 编码器
+        # fourcc = cv2.VideoWriter_fourcc(*'avc1')
+        # 或者尝试 X264 (如果安装了)
+        fourcc = cv2.VideoWriter_fourcc(*'X264')
+        # 如果上述都不行，再回退到 mp4v，但要意识到兼容性问题
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
         # 创建视频写入器
-        out = cv2.VideoWriter(result_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
-        
+        out = cv2.VideoWriter(result_path, fourcc, fps, (width, height))
+
+        # 检查写入器是否成功打开
+        if not out.isOpened():
+            cap.release() # 释放读取器
+            raise IOError(f"无法打开 VideoWriter，请检查 FOURCC 编码 '{'X264'}' 或其他编码是否被您的 OpenCV 构建支持。") # 提供更具体的错误
+
         frame_count = 0
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
@@ -240,6 +260,7 @@ def handle_image_detection(request):
         # 生成唯一文件名
         timestamp = str(int(time.time() * 1000))
         image_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'upload_{timestamp}.jpg')
+        result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'result_{timestamp}.jpg')
         
         print(f"准备保存文件到：{image_path}")  # 调试信息
         
@@ -262,7 +283,7 @@ def handle_image_detection(request):
         # 保存检测结果
         for r in results:
             im_array = r.plot()
-            r.save(image_path)
+            r.save(result_path)
         
         return JsonResponse({
             'success': True,

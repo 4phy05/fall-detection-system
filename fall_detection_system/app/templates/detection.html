@@ -9,7 +9,7 @@
         display: flex;
         width: 100%;
         min-height: 80vh;
-        padding: 2rem;
+        padding: 1rem;
         gap: 2rem;
     }
 
@@ -55,16 +55,17 @@
 
     .result-container {
         flex: 2;
+        margin-top: 0rem;
+        padding: 0rem;
         background-color: rgba(255, 255, 255, 0.9);
         border-radius: 10px;
-        padding: 2rem;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
     .upload-section {
         display: none;  /* 默认隐藏 */
         text-align: center;
-        padding: 2rem;
+        padding: 1rem;
         border: 1px solid #ccc;
         border-radius: 8px;
         margin-bottom: 2rem;
@@ -91,6 +92,7 @@
 
     .preview-section {
         margin-top: 0rem;
+        padding: 0rem;
         text-align: center;
         width: 100%;
         max-width: 640px;
@@ -101,12 +103,12 @@
     .preview-image, .preview-video {
         max-width: 640px;  /* 限制最大宽度 */
         max-height: 360px; /* 限制最大高度，保持16:9比例 */
-        margin: 1rem auto;
+        margin: 0rem auto;
         display: block;
     }
 
     .result-section {
-        margin-top: 2rem;
+        margin-top: 1rem;
         padding: 1rem;
         border-radius: 8px;
         background-color: #f8f9fa;
@@ -188,6 +190,7 @@
     .preview-container,
     .result-container {
         display: flex;
+        padding: 1rem;
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -207,6 +210,104 @@
         margin: 20px 0;         /* 上下边距 */
         font-weight: normal;    /* 文字粗细 */
     }
+
+    /* 摄像头检测按钮样式 (可以按需调整) */
+    #cameraDetectButtonContainer {
+        text-align: center;
+        margin-top: 1rem;
+    }
+    /* 让开始/停止按钮并排显示 */
+    #cameraDetectButtonContainer .upload-btn {
+        margin: 5px;
+    }
+    /* Optional: Add a subtle indicator when detection is active */
+    #cameraPreview.detecting {
+        border: 2px solid #007bff; /* Blue border */
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+    /* Styles for the new camera layout */
+    #cameraLayoutContainer {
+        display: none; /* Hidden by default */
+        display: flex;
+        flex-direction: row; /* Side by side */
+        width: 100%;
+        gap: 1.5rem; /* Space between preview and result */
+        padding: 1rem; /* Padding for the overall container */
+        align-items: flex-start; /* Align items at the top */
+    }
+
+    #cameraPreviewColumn {
+        flex: 1; /* Takes up half the space */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #cameraResultArea {
+        flex: 1; /* Takes up the other half */
+        display: none; /* Hidden until detection starts */
+       /* border: 1px solid #e0e0e0; */
+       /* background-color: #f8f9fa; */
+        padding: 0rem 1rem 1rem 1rem; /* Padding inside the result area */
+        border-radius: 8px;
+        min-height: 360px; /* Match preview height */
+        display: flex; /* Use flexbox to center content vertically if needed */
+        flex-direction: column;
+       /* justify-content: center; */ /* Center content vertically */
+        align-items: center; /* Center content horizontally */
+        text-align: center;
+    }
+     #cameraResultArea h4 {
+        margin-bottom: 1rem;
+        color: #333;
+        font-size: 1.1em;
+    }
+
+    #cameraResultContent img {
+        max-width: 100%; /* Ensure result image fits */
+        max-height: 300px; /* Limit result image height */
+        display: block;
+        margin: 0 auto 0.5rem auto; /* Center image and add bottom margin */
+    }
+     #cameraResultContent p {
+         font-size: 0.9em;
+         color: #555;
+     }
+     #cameraResultContent .message-error p { /* Style error messages in camera result */
+        color: #721c24;
+        font-weight: bold;
+     }
+
+
+    #cameraDetectButtonContainer {
+        text-align: center;
+        margin-top: 1rem;
+    }
+    #cameraDetectButtonContainer .upload-btn {
+        margin: 5px;
+    }
+
+    /* Keep webcam preview constrained */
+    #webcam {
+        max-width: 100%; /* Fill the column width */
+        max-height: 360px;
+        display: block;
+        border-radius: 5px; /* Optional: round corners */
+    }
+
+     /* Adjust file layout container */
+     #fileLayoutContainer {
+        padding: 1rem;
+     }
+     #initialMessage {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+        font-size: 1.1em;
+     }
+
+
 </style>
 
 <div class="detection-container">
@@ -230,39 +331,56 @@
             <form id="uploadForm" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="detection_type" id="detection_type" value="">
-                <input type="file" id="fileInput" class="file-input" name="file" required>
+                <input type="file" id="fileInput" class="file-input" name="file">
                 <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     选择文件
                 </button>
                 <p class="format-hint" id="formatHint"></p>
-                <button type="button" class="upload-btn" onclick="startDetection()">开始检测</button>
+                <button type="button" id="uploadDetectButton" class="upload-btn" onclick="startDetection()">开始检测</button>
             </form>
         </div>
     </div>
 
     <div class="result-container">
-        <div id="cameraPreview" style="display: none;">
-            <div style="width: 100%; max-width: 640px; margin: 0 auto;">
-                <video id="webcam" autoplay playsinline></video>
+        <div id="cameraLayoutContainer" style="display: none;">
+            <div id="cameraPreviewColumn">
+                <div id="cameraPreview" style="margin-bottom: 1rem;">
+                    <video id="webcam" autoplay playsinline></video>
+                </div>
+                <div id="cameraDetectButtonContainer">
+                    <button type="button" id="startCamDetectBtn" class="upload-btn" onclick="startCameraDetection()">开始实时检测</button>
+                    <button type="button" id="stopCamDetectBtn" class="upload-btn" onclick="stopCameraDetection()" style="display: none; background-color: #dc3545;">停止检测</button>
+                </div>
+            </div>
+            <div id="cameraResultArea" style="display: none;">
+                <h4>实时检测结果</h4>
+                <div id="cameraResultContent">
+                    <!-- Camera results/errors injected here -->
+                </div>
             </div>
         </div>
 
-        <div class="preview-section" id="previewSection" style="display: none;">
-            <h3>预览</h3>
-            <div class="preview-container">
-                <img id="previewImage" class="preview-image" style="display: none;">
-                <video id="previewVideo" class="preview-video" controls style="display: none;"></video>
+        <div id="fileLayoutContainer" style="display: block;">
+            <div id="initialMessage">
+                请在左侧选择检测类型开始。
             </div>
-        </div>
-
-        <div class="loading" id="loadingSection">
-            <div class="loading-spinner"></div>
-            <p>正在进行检测，请稍候...</p>
-        </div>
-
-        <div class="result-section" id="resultSection" style="display: none;">
-            <h3>检测结果</h3>
-            <div id="resultContent" class="preview-container"></div>
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>预览</h3>
+                <div class="preview-container">
+                    <img id="previewImage" class="preview-image" style="display: none;">
+                    <video id="previewVideo" class="preview-video" controls style="display: none;"></video>
+                </div>
+            </div>
+            <div class="loading" id="loadingSection" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>正在进行检测，请稍候...</p>
+            </div>
+            <div class="result-section" id="resultSection" style="display: none;">
+                <h3>检测结果</h3>
+                <div id="resultContent" class="preview-container">
+                    <!-- File results/errors injected here -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -274,17 +392,33 @@
     const previewVideo = document.getElementById('previewVideo');
     const loadingSection = document.getElementById('loadingSection');
     const resultSection = document.getElementById('resultSection');
+    const resultContent = document.getElementById('resultContent');
+    const cameraLayoutContainer = document.getElementById('cameraLayoutContainer');
+    const cameraPreviewColumn = document.getElementById('cameraPreviewColumn');
+    const cameraPreviewDiv = document.getElementById('cameraPreview');
+    const uploadSection = document.getElementById('uploadSection');
+    const startCamDetectBtn = document.getElementById('startCamDetectBtn');
+    const stopCamDetectBtn = document.getElementById('stopCamDetectBtn');
+    const uploadDetectButton = document.getElementById('uploadDetectButton');
+    const webcamElement = document.getElementById('webcam');
 
-    // 文件选择事件监听
+    let cameraIntervalId = null;
+    const CAMERA_INTERVAL = 5000; // 5 seconds
+
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) {
-            handleFileSelect(e.target.files[0]);
+        const detectionType = document.getElementById('detection_type').value;
+        if (detectionType === 'image' || detectionType === 'video') {
+            if (e.target.files.length) {
+                handleFileSelect(e.target.files[0]);
+            }
         }
     });
 
     function handleFileSelect(file) {
         const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
         const validVideoTypes = ['video/mp4', 'video/avi'];
+
+        initialMessage.style.display = 'none';
 
         if (validImageTypes.includes(file.type)) {
             previewImage.style.display = 'block';
@@ -296,27 +430,37 @@
             previewVideo.src = URL.createObjectURL(file);
         } else {
             alert('请上传支持的文件格式！');
+            fileInput.value = '';
+            initialMessage.style.display = 'block';
             return;
         }
-
+        resultSection.style.display = 'none';
         previewSection.style.display = 'block';
     }
 
     function startDetection() {
         const formData = new FormData(document.getElementById('uploadForm'));
         const file = fileInput.files[0];
+        const detectionType = document.getElementById('detection_type').value;
+        
+        if (detectionType === 'camera') {
+            console.warn("startDetection called for camera, use startCameraDetection instead.");
+            return;
+        }
         
         if (!file) {
             handleError('请选择文件');
             return;
         }
         
-        console.log('准备上传文件:', file.name);  // 调试信息
+        console.log('准备上传文件:', file.name);
         
         loadingSection.style.display = 'block';
         resultSection.style.display = 'none';
+        previewSection.style.display = 'none';
+        initialMessage.style.display = 'none';
 
-        fetch('{% url "detect" %}', {
+        fetch('{% url "detection_view" %}', {
             method: 'POST',
             body: formData,
             headers: {
@@ -324,221 +468,238 @@
             }
         })
         .then(response => {
-            console.log('服务器响应:', response);  // 调试信息
+            console.log('服务器响应:', response);
             return response.json();
         })
         .then(data => {
-            console.log('处理结果:', data);  // 调试信息
+            console.log('处理结果:', data);
             loadingSection.style.display = 'none';
-            resultSection.style.display = 'block';
             
             if (data.success) {
-                resultContent.innerHTML = `
-                    <div class="message message-success">
-                        <img src="${data.result_image}" alt="检测结果" style="max-width: 100%; height: auto;">
-                        <p>${data.message}</p>
-                    </div>
-                `;
+                resultSection.style.display = 'block';
+                if (data.type === 'image') {
+                    resultContent.innerHTML = `
+                        <div class="message message-success">
+                            <img src="${data.result_image}" alt="检测结果" style="max-width: 100%; height: auto;">
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                } else if (data.type === 'video') {
+                    resultContent.innerHTML = `
+                        <div class="message message-success">
+                            <video controls style="max-width: 100%;">
+                                <source src="${data.result_path}" type="video/mp4">
+                            </video>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                }
             } else {
                 handleError(data.message);
             }
         })
         .catch(error => {
-            console.error('上传错误:', error);  // 调试信息
-            handleError(error);
+            console.error('上传错误:', error);
+            handleError('请求失败: ' + error);
         });
     }
 
-    function handleError(error) {
-        loadingSection.style.display = 'none';
+    function startCameraDetection() {
+        if (!webcamElement.srcObject || !webcamElement.srcObject.active) {
+            handleError('摄像头未启动或无视频流');
+            return;
+        }
+        if (webcamElement.readyState < webcamElement.HAVE_ENOUGH_DATA) {
+            handleError('摄像头数据尚未准备好，请稍候');
+            return;
+        }
+        if (cameraIntervalId) {
+            console.log("检测已在运行中");
+            return;
+        }
+
+        console.log("启动摄像头实时检测 (每 5 秒)...");
+        startCamDetectBtn.disabled = true;
+        stopCamDetectBtn.style.display = 'inline-block';
+        stopCamDetectBtn.disabled = false;
         resultSection.style.display = 'block';
+        resultContent.innerHTML = '<p>等待第一次检测结果...</p>';
+        cameraPreviewDiv.classList.add('detecting');
+
+        cameraIntervalId = setInterval(captureAndSendFrame, CAMERA_INTERVAL);
+    }
+
+    function stopCameraDetection() {
+        if (cameraIntervalId) {
+            clearInterval(cameraIntervalId);
+            cameraIntervalId = null;
+            console.log("停止摄像头实时检测");
+        }
+        startCamDetectBtn.disabled = false;
+        stopCamDetectBtn.style.display = 'none';
+        cameraPreviewDiv.classList.remove('detecting');
+    }
+
+    function captureAndSendFrame() {
+        if (!webcamElement.srcObject || !webcamElement.srcObject.active || webcamElement.paused || webcamElement.ended) {
+             console.warn("视频流无效，停止检测");
+             stopCameraDetection();
+             return;
+        }
+         if (webcamElement.readyState < webcamElement.HAVE_ENOUGH_DATA) {
+            console.warn('摄像头数据不足，跳过此帧');
+            return;
+        }
+
+
+        const canvas = document.createElement('canvas');
+        try {
+            canvas.width = webcamElement.videoWidth;
+            canvas.height = webcamElement.videoHeight;
+             if (canvas.width === 0 || canvas.height === 0) {
+                console.warn("无效的视频尺寸，跳过此帧");
+                return; // 确保尺寸有效
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+             console.error("绘制 Canvas 出错:", e);
+             stopCameraDetection(); // 出错时停止
+             handleError("无法从摄像头绘制图像");
+             return;
+        }
+
+
+        canvas.toBlob(blob => {
+            if (!blob) {
+                console.error("无法从Canvas创建Blob");
+                // 出现此问题通常表明画布有问题，可能需要停止
+                // stopCameraDetection();
+                // handleError("无法从Canvas创建Blob");
+                return; // 跳过此帧
+            }
+            const formData = new FormData();
+            formData.append('detection_type', 'camera'); // 后端依赖此字段
+            formData.append('file', blob, `cam_frame_${Date.now()}.jpg`); // 添加时间戳确保唯一性
+
+            // 发送请求，注意这里不再显示全局 loading
+            // loadingSection.style.display = 'block'; // 不再需要全局 loading
+
+            fetch('{% url "detection_view" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                 if (!response.ok) {
+                     // 如果服务器返回错误 (e.g., 500)，也应该处理
+                     throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
+                 }
+                return response.json();
+            })
+            .then(data => {
+                // loadingSection.style.display = 'none'; // 不再需要全局 loading
+                if (data.success && data.type === 'camera') {
+                    // 更新结果区域的内容，而不是隐藏预览
+                    resultContent.innerHTML = `
+                        <img src="${data.result_image}?t=${Date.now()}" alt="检测结果" style="max-width: 100%; height: auto;">
+                        <p>${data.message}</p>
+                    `; // 添加时间戳参数防止浏览器缓存旧图
+                } else {
+                    // 显示单帧处理错误，但不一定停止循环
+                    console.error("单帧处理失败:", data.message);
+                    resultContent.innerHTML = `<p class="message message-error">处理失败: ${data.message || '未知错误'}</p>`;
+                }
+            })
+            .catch(error => {
+                 // loadingSection.style.display = 'none';
+                 console.error('摄像头帧发送/处理错误:', error);
+                 resultContent.innerHTML = `<p class="message message-error">请求错误: ${error.message}</p>`;
+                 // 发生网络或严重错误时可以选择停止检测
+                 // stopCameraDetection();
+            });
+        }, 'image/jpeg', 0.8); // 可以调整图片质量 (0.8 = 80%)
+    }
+
+    function handleError(error) {
+        loadingSection.style.display = 'none'; // 隐藏文件上传的 loading
+        resultSection.style.display = 'block'; // 在结果区显示错误
         resultContent.innerHTML = `
             <div class="message message-error">
-                <p>检测过程中出现错误，请重试</p>
+                <p>发生错误:</p>
                 <p>${error}</p>
             </div>
         `;
+         stopCameraDetection(); // 出错时确保停止实时检测
+        cameraPreviewDiv.classList.remove('detecting'); // Remove indicator
     }
 
     function activateCamera() {
+        stopCamera(); // 停止任何现有流
+        stopCameraDetection(); // 停止任何现有检测循环
         document.getElementById('detection_type').value = 'camera';
-        document.getElementById('uploadSection').style.display = 'none';
-        document.getElementById('previewSection').style.display = 'none';
-        document.getElementById('cameraPreview').style.display = 'block';
-        
-        // 启动摄像头
+        uploadSection.style.display = 'none';
+        previewSection.style.display = 'none';
+        resultSection.style.display = 'none'; // 初始隐藏结果区
+        resultContent.innerHTML = ''; // 清空旧结果
+        cameraLayoutContainer.style.display = 'flex'; // 显示包含预览和按钮的容器
+        startCamDetectBtn.disabled = false; // 重置按钮状态
+        stopCamDetectBtn.style.display = 'none';
+        cameraPreviewDiv.classList.remove('detecting'); // Ensure indicator is off
+
+
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => {
-                document.getElementById('webcam').srcObject = stream;
+                webcamElement.srcObject = stream;
+                webcamElement.play().catch(e => console.error("播放错误:",e)); // 添加播放错误处理
             })
             .catch(err => {
                 alert('无法访问摄像头：' + err);
+                cameraLayoutContainer.style.display = 'none';
             });
     }
 
     function activateVideoUpload() {
-        document.getElementById('detection_type').value = 'video';
-        document.getElementById('cameraPreview').style.display = 'none';
-        document.getElementById('uploadSection').style.display = 'block';
-        document.getElementById('fileInput').accept = 'video/*';
-        document.getElementById('formatHint').textContent = '支持的格式：视频(mp4, avi)';
-        // 停止摄像头
         stopCamera();
+        stopCameraDetection();
+        document.getElementById('detection_type').value = 'video';
+        cameraLayoutContainer.style.display = 'none';
+        resultSection.style.display = 'none';
+        previewSection.style.display = 'none';
+        uploadSection.style.display = 'block';
+        uploadDetectButton.style.display = 'inline-block';
+        document.getElementById('fileInput').accept = 'video/mp4, video/avi';
+        document.getElementById('formatHint').textContent = '支持的格式：视频(mp4, avi)';
+        fileInput.value = '';
     }
 
     function activateImageUpload() {
-        document.getElementById('detection_type').value = 'image';
-        document.getElementById('cameraPreview').style.display = 'none';
-        document.getElementById('uploadSection').style.display = 'block';
-        document.getElementById('fileInput').accept = 'image/*';
-        document.getElementById('formatHint').textContent = '支持的格式：图片(jpg, png, jpeg)';
-        // 停止摄像头
         stopCamera();
+        stopCameraDetection();
+        document.getElementById('detection_type').value = 'image';
+        cameraLayoutContainer.style.display = 'none';
+        resultSection.style.display = 'none';
+        previewSection.style.display = 'none';
+        uploadSection.style.display = 'block';
+        uploadDetectButton.style.display = 'inline-block';
+        document.getElementById('fileInput').accept = 'image/jpeg, image/png, image/jpg';
+        document.getElementById('formatHint').textContent = '支持的格式：图片(jpg, png, jpeg)';
+        fileInput.value = '';
     }
 
     function stopCamera() {
-        const video = document.getElementById('webcam');
-        if (video.srcObject) {
-            video.srcObject.getTracks().forEach(track => track.stop());
-            video.srcObject = null;
+        if (webcamElement.srcObject) {
+            webcamElement.srcObject.getTracks().forEach(track => track.stop());
+            webcamElement.srcObject = null;
         }
     }
 
-    // 摄像头实时检测
-    let cameraInterval;
-
-    function startCameraDetection() {
-        const video = document.getElementById('webcam');
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        // 设置canvas大小与视频相同
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // 每100ms发送一帧进行检测
-        cameraInterval = setInterval(() => {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const frame = canvas.toDataURL('image/jpeg');
-            
-            // 发送帧到服务器进行检测
-            fetch('{% url "detect" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `type=camera&frame=${encodeURIComponent(frame)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 显示检测结果
-                    document.getElementById('resultContent').innerHTML = `
-                        <img src="${data.result_image}" style="max-width: 100%;">
-                    `;
-                }
-            });
-        }, 100);
-    }
-
-    function stopCameraDetection() {
-        if (cameraInterval) {
-            clearInterval(cameraInterval);
-        }
-    }
-
-    // 修改视频上传处理函数
-    function startVideoDetection() {
-        const formData = new FormData(document.getElementById('uploadForm'));
-        formData.append('type', 'video');
-        
-        loadingSection.style.display = 'block';
-        resultSection.style.display = 'none';
-        
-        // 显示进度信息
-        loadingSection.innerHTML = `
-            <div class="loading-spinner"></div>
-            <p>正在处理视频：<span id="progressText">0%</span></p>
-            <div class="progress">
-                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-            </div>
-        `;
-        
-        // 设置较长的超时时间
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟超时
-        
-        fetch('{% url "detect" %}', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('网络响应错误');
-            }
-            return response.json();
-        })
-        .then(data => {
-            clearTimeout(timeoutId);
-            loadingSection.style.display = 'none';
-            resultSection.style.display = 'block';
-            
-            if (data.success) {
-                resultContent.innerHTML = `
-                    <video controls style="max-width: 100%;">
-                        <source src="${data.result_path}" type="video/mp4">
-                    </video>
-                    <p>${data.message}</p>
-                `;
-            } else {
-                handleError(data.message);
-            }
-        })
-        .catch(error => {
-            clearTimeout(timeoutId);
-            if (error.name === 'AbortError') {
-                handleError('处理超时，请尝试处理更短的视频');
-            } else {
-                handleError(error.message);
-            }
-        });
-    }
-
-    // 修改图片上传处理函数
-    function startImageDetection() {
-        const formData = new FormData(document.getElementById('uploadForm'));
-        formData.append('type', 'image');
-        
-        loadingSection.style.display = 'block';
-        resultSection.style.display = 'none';
-        
-        fetch('{% url "detect" %}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            loadingSection.style.display = 'none';
-            resultSection.style.display = 'block';
-            
-            if (data.success) {
-                resultContent.innerHTML = `
-                    <img src="${data.result_image}" style="max-width: 100%;">
-                    <p>${data.message}</p>
-                `;
-            } else {
-                handleError(data.message);
-            }
-        })
-        .catch(error => handleError(error));
-    }
-
-    // 添加错误重试功能
-    function retryDetection() {
-        resultSection.style.display = 'none';
-        startVideoDetection();
-    }
+    // 页面卸载时确保停止摄像头和定时器
+    window.addEventListener('beforeunload', () => {
+        stopCamera();
+        stopCameraDetection();
+    });
 </script>
 {% endblock %} 
