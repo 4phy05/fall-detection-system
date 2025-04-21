@@ -33,25 +33,24 @@ def register(request):
 
 # 登录
 def user_login(request):
+    next_url = request.GET.get('next', 'index')  # 获取next参数，默认为index
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data["username"]
             password = form.cleaned_data["password"]
             
-            # 先检查用户是否存在
             try:
                 user = CustomUser.objects.get(username=username)
             except CustomUser.DoesNotExist:
                 messages.error(request, '用户不存在！')
                 return render(request, "login.html", {"form": form})
             
-            # 验证密码
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
                 messages.success(request, '登录成功！')
-                return redirect('index')
+                return redirect(next_url)  # 使用next_url进行重定向
             else:
                 messages.error(request, '密码错误！')
                 return render(request, "login.html", {"form": form})

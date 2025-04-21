@@ -144,3 +144,6 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
 # 在 settings.py 中添加
 TIMEOUT = 300  # 5分钟超时
 FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+
+# 添加登录URL配置
+LOGIN_URL = 'login'  # 这里使用我们在urls.py中定义的login视图的name
