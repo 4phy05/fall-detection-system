@@ -1,5 +1,6 @@
 .env
 .idea
+upload_files/*
 documents
 datasets
 __pycache__
