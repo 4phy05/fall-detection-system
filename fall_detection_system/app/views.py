@@ -126,7 +126,7 @@ def handle_camera_detection(request):
         results = model(frame) # 直接对解码后的 frame 进行检测
 
         # 生成唯一文件名
-        timestamp = str(int(time.time() * 1000))
+        timestamp = str(int(time.time() * 500))
         result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'camera_result_{timestamp}.jpg')
         result_url = f'/media/upload_files/camera_result_{timestamp}.jpg'
 
