@@ -307,6 +307,46 @@
         font-size: 1.1em;
      }
 
+    /* 添加检测框信息样式 */
+    .detection-info {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .detection-info h4 {
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .box-info {
+        margin: 0.5rem 0;
+        padding: 0.5rem;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+
+    .box-info p {
+        margin: 0.2rem 0;
+        font-size: 0.9rem;
+    }
+
+    .confidence-high {
+        color: #28a745;
+    }
+
+    .confidence-medium {
+        color: #ffc107;
+    }
+
+    .confidence-low {
+        color: #dc3545;
+    }
 
 </style>
 
@@ -438,6 +478,39 @@
         previewSection.style.display = 'block';
     }
 
+    function formatBoxInfo(box) {
+        const confidenceClass = box.confidence >= 0.7 ? 'confidence-high' : 
+                              box.confidence >= 0.4 ? 'confidence-medium' : 
+                              'confidence-low';
+        
+        // 添加类别名称映射
+        const classNames = {
+            0: '跌倒状态',
+            1: '正常状态'
+        };
+        
+        return `
+            <div class="box-info">
+                <p>位置: (${box.x1}, ${box.y1}) - (${box.x2}, ${box.y2})</p>
+                <p>置信度: <span class="${confidenceClass}">${box.confidence}</span></p>
+                <p>状态: ${classNames[box.class] || `未知状态(${box.class})`}</p>
+            </div>
+        `;
+    }
+
+    function displayDetectionInfo(boxes) {
+        if (!boxes || boxes.length === 0) {
+            return '<p>未检测到目标</p>';
+        }
+
+        return `
+            <div class="detection-info">
+                <h4>检测结果详情</h4>
+                ${boxes.map(box => formatBoxInfo(box)).join('')}
+            </div>
+        `;
+    }
+
     function startDetection() {
         const formData = new FormData(document.getElementById('uploadForm'));
         const file = fileInput.files[0];
@@ -482,6 +555,7 @@
                         <div class="message message-success">
                             <img src="${data.result_image}" alt="检测结果" style="max-width: 100%; height: auto;">
                             <p>${data.message}</p>
+                            ${displayDetectionInfo(data.boxes)}
                         </div>
                     `;
                 } else if (data.type === 'video') {
@@ -491,6 +565,11 @@
                                 <source src="${data.result_path}" type="video/mp4">
                             </video>
                             <p>${data.message}</p>
+                            <div class="detection-info">
+                                <h4>视频检测结果</h4>
+                                <p>总帧数: ${data.boxes.length}</p>
+                                <p>检测到目标的帧数: ${data.boxes.filter(frame => frame.length > 0).length}</p>
+                            </div>
                         </div>
                     `;
                 }
@@ -551,39 +630,31 @@
             return;
         }
 
-
         const canvas = document.createElement('canvas');
         try {
             canvas.width = webcamElement.videoWidth;
             canvas.height = webcamElement.videoHeight;
              if (canvas.width === 0 || canvas.height === 0) {
                 console.warn("无效的视频尺寸，跳过此帧");
-                return; // 确保尺寸有效
+                return;
             }
             const ctx = canvas.getContext('2d');
             ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
         } catch (e) {
              console.error("绘制 Canvas 出错:", e);
-             stopCameraDetection(); // 出错时停止
+             stopCameraDetection();
              handleError("无法从摄像头绘制图像");
              return;
         }
 
-
         canvas.toBlob(blob => {
             if (!blob) {
                 console.error("无法从Canvas创建Blob");
-                // 出现此问题通常表明画布有问题，可能需要停止
-                // stopCameraDetection();
-                // handleError("无法从Canvas创建Blob");
-                return; // 跳过此帧
+                return;
             }
             const formData = new FormData();
-            formData.append('detection_type', 'camera'); // 后端依赖此字段
-            formData.append('file', blob, `cam_frame_${Date.now()}.jpg`); // 添加时间戳确保唯一性
-
-            // 发送请求，注意这里不再显示全局 loading
-            // loadingSection.style.display = 'block'; // 不再需要全局 loading
+            formData.append('detection_type', 'camera');
+            formData.append('file', blob, `cam_frame_${Date.now()}.jpg`);
 
             fetch('{% url "detection_view" %}', {
                 method: 'POST',
@@ -594,33 +665,27 @@
             })
             .then(response => {
                  if (!response.ok) {
-                     // 如果服务器返回错误 (e.g., 500)，也应该处理
                      throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
                  }
                 return response.json();
             })
             .then(data => {
-                // loadingSection.style.display = 'none'; // 不再需要全局 loading
                 if (data.success && data.type === 'camera') {
-                    // 更新结果区域的内容，而不是隐藏预览
                     resultContent.innerHTML = `
                         <img src="${data.result_image}?t=${Date.now()}" alt="检测结果" style="max-width: 100%; height: auto;">
                         <p>${data.message}</p>
-                    `; // 添加时间戳参数防止浏览器缓存旧图
+                        ${displayDetectionInfo(data.boxes)}
+                    `;
                 } else {
-                    // 显示单帧处理错误，但不一定停止循环
                     console.error("单帧处理失败:", data.message);
                     resultContent.innerHTML = `<p class="message message-error">处理失败: ${data.message || '未知错误'}</p>`;
                 }
             })
             .catch(error => {
-                 // loadingSection.style.display = 'none';
                  console.error('摄像头帧发送/处理错误:', error);
                  resultContent.innerHTML = `<p class="message message-error">请求错误: ${error.message}</p>`;
-                 // 发生网络或严重错误时可以选择停止检测
-                 // stopCameraDetection();
             });
-        }, 'image/jpeg', 0.8); // 可以调整图片质量 (0.8 = 80%)
+        }, 'image/jpeg', 0.8);
     }
 
     function handleError(error) {

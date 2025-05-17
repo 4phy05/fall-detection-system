@@ -123,30 +123,43 @@ def handle_camera_detection(request):
         model = YOLO('app/static/models/best.pt')
 
         # 进行检测
-        results = model(frame) # 直接对解码后的 frame 进行检测
+        results = model(frame)
+
+        # 获取检测框信息
+        boxes = []
+        for r in results:
+            for box in r.boxes:
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                conf = float(box.conf[0])
+                cls = int(box.cls[0])
+                boxes.append({
+                    'x1': int(x1),
+                    'y1': int(y1),
+                    'x2': int(x2),
+                    'y2': int(y2),
+                    'confidence': round(conf, 2),
+                    'class': cls
+                })
 
         # 生成唯一文件名
         timestamp = str(int(time.time() * 500))
         result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'camera_result_{timestamp}.jpg')
         result_url = f'/media/upload_files/camera_result_{timestamp}.jpg'
 
-        # 保存检测结果图像 (处理后的图像)
-        # results[0].plot() 返回带有标注的图像 numpy 数组
+        # 保存检测结果图像
         annotated_frame = results[0].plot()
-        # 使用 cv2.imwrite 保存 numpy 数组图像
         cv2.imwrite(result_path, annotated_frame)
-
-        # 注意：这里不再需要 cap.release()
 
         return JsonResponse({
             'success': True,
-            'type': 'camera', # 保持类型为 camera
+            'type': 'camera',
             'message': '摄像头单帧检测完成',
-            'result_image': result_url # 返回处理后图像的 URL
+            'result_image': result_url,
+            'boxes': boxes
         })
 
     except Exception as e:
-        print(f"摄像头处理出错: {str(e)}") # 打印更详细的错误日志
+        print(f"摄像头处理出错: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'摄像头检测处理出错：{str(e)}'
@@ -188,23 +201,18 @@ def handle_video_detection(request):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
-        # 尝试使用 H.264 (AVC) 编码器
-        # fourcc = cv2.VideoWriter_fourcc(*'avc1')
-        # 或者尝试 X264 (如果安装了)
         fourcc = cv2.VideoWriter_fourcc(*'X264')
-        # 如果上述都不行，再回退到 mp4v，但要意识到兼容性问题
-        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-
-        # 创建视频写入器
         out = cv2.VideoWriter(result_path, fourcc, fps, (width, height))
 
-        # 检查写入器是否成功打开
         if not out.isOpened():
-            cap.release() # 释放读取器
-            raise IOError(f"无法打开 VideoWriter，请检查 FOURCC 编码 '{'X264'}' 或其他编码是否被您的 OpenCV 构建支持。") # 提供更具体的错误
+            cap.release()
+            raise IOError(f"无法打开 VideoWriter，请检查 FOURCC 编码 '{'X264'}' 或其他编码是否被您的 OpenCV 构建支持。")
 
         frame_count = 0
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # 存储所有帧的检测框信息
+        all_frames_boxes = []
         
         while cap.isOpened():
             ret, frame = cap.read()
@@ -213,6 +221,25 @@ def handle_video_detection(request):
                 
             # 进行检测
             results = model(frame)
+            
+            # 获取当前帧的检测框信息
+            frame_boxes = []
+            for r in results:
+                for box in r.boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
+                    conf = float(box.conf[0])
+                    cls = int(box.cls[0])
+                    frame_boxes.append({
+                        'x1': int(x1),
+                        'y1': int(y1),
+                        'x2': int(x2),
+                        'y2': int(y2),
+                        'confidence': round(conf, 2),
+                        'class': cls
+                    })
+            
+            all_frames_boxes.append(frame_boxes)
+            
             detected_frame = results[0].plot()
             out.write(detected_frame)
             
@@ -227,7 +254,8 @@ def handle_video_detection(request):
             'type': 'video',
             'message': '视频检测完成',
             'result_path': f'/media/upload_files/result_{timestamp}.mp4',
-            'progress': 100
+            'progress': 100,
+            'boxes': all_frames_boxes
         })
         
     except Exception as e:
@@ -241,13 +269,13 @@ def handle_image_detection(request):
     try:
         image_file = request.FILES.get('file')
         if not image_file:
-            print("没有接收到文件")  # 调试信息
+            print("没有接收到文件")
             return JsonResponse({
                 'success': False,
                 'message': '请选择图片文件'
             })
             
-        print(f"接收到文件：{image_file.name}")  # 调试信息
+        print(f"接收到文件：{image_file.name}")
         
         # 检查文件类型
         if not image_file.name.lower().endswith(('.jpg', '.jpeg', '.png')):
@@ -261,7 +289,7 @@ def handle_image_detection(request):
         image_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'upload_{timestamp}.jpg')
         result_path = os.path.join(settings.MEDIA_ROOT, 'upload_files', f'result_{timestamp}.jpg')
         
-        print(f"准备保存文件到：{image_path}")  # 调试信息
+        print(f"准备保存文件到：{image_path}")
         
         # 确保目录存在
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
@@ -271,13 +299,29 @@ def handle_image_detection(request):
             for chunk in image_file.chunks():
                 destination.write(chunk)
                 
-        print(f"文件已保存到：{image_path}")  # 调试信息
+        print(f"文件已保存到：{image_path}")
         
         # 加载YOLO模型
         model = YOLO('app/static/models/best.pt')
         
         # 进行检测
         results = model(image_path)
+        
+        # 获取检测框信息
+        boxes = []
+        for r in results:
+            for box in r.boxes:
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                conf = float(box.conf[0])
+                cls = int(box.cls[0])
+                boxes.append({
+                    'x1': int(x1),
+                    'y1': int(y1),
+                    'x2': int(x2),
+                    'y2': int(y2),
+                    'confidence': round(conf, 2),
+                    'class': cls
+                })
         
         # 保存检测结果
         for r in results:
@@ -288,7 +332,8 @@ def handle_image_detection(request):
             'success': True,
             'type': 'image',
             'message': '图片检测完成',
-            'result_image': f'/media/upload_files/result_{timestamp}.jpg'
+            'result_image': f'/media/upload_files/result_{timestamp}.jpg',
+            'boxes': boxes
         })
         
     except Exception as e:
