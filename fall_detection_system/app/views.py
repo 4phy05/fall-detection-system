@@ -107,6 +107,11 @@ def handle_camera_detection(request):
                 'message': '未接收到摄像头捕捉的图像'
             })
 
+        # 获取检测参数
+        iou = float(request.POST.get('iou', 0.5))
+        conf = float(request.POST.get('conf', 0.5))
+        size = int(request.POST.get('size', 640))
+
         # 将上传的文件内容读入内存
         image_data = image_file.read()
         # 将内存中的图像数据解码为 OpenCV 格式
@@ -122,8 +127,8 @@ def handle_camera_detection(request):
         # 加载YOLO模型
         model = YOLO('app/static/models/best.pt')
 
-        # 进行检测
-        results = model(frame)
+        # 进行检测，使用自定义参数
+        results = model(frame, conf=conf, iou=iou, imgsz=size)
 
         # 获取检测框信息
         boxes = []
@@ -175,6 +180,11 @@ def handle_video_detection(request):
                 'message': '请选择视频文件'
             })
             
+        # 获取检测参数
+        iou = float(request.POST.get('iou', 0.5))
+        conf = float(request.POST.get('conf', 0.5))
+        size = int(request.POST.get('size', 640))
+            
         # 检查文件类型
         if not video_file.name.lower().endswith(('.mp4', '.avi')):
             return JsonResponse({
@@ -219,8 +229,8 @@ def handle_video_detection(request):
             if not ret:
                 break
                 
-            # 进行检测
-            results = model(frame)
+            # 进行检测，使用自定义参数
+            results = model(frame, conf=conf, iou=iou, imgsz=size)
             
             # 获取当前帧的检测框信息
             frame_boxes = []
@@ -275,6 +285,11 @@ def handle_image_detection(request):
                 'message': '请选择图片文件'
             })
             
+        # 获取检测参数
+        iou = float(request.POST.get('iou', 0.5))
+        conf = float(request.POST.get('conf', 0.5))
+        size = int(request.POST.get('size', 640))
+            
         print(f"接收到文件：{image_file.name}")
         
         # 检查文件类型
@@ -304,8 +319,8 @@ def handle_image_detection(request):
         # 加载YOLO模型
         model = YOLO('app/static/models/best.pt')
         
-        # 进行检测
-        results = model(image_path)
+        # 进行检测，使用自定义参数
+        results = model(image_path, conf=conf, iou=iou, imgsz=size)
         
         # 获取检测框信息
         boxes = []

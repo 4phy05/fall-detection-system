@@ -228,124 +228,154 @@
 
     /* Styles for the new camera layout */
     #cameraLayoutContainer {
-        display: none; /* Hidden by default */
-        display: flex;
-        flex-direction: row; /* Side by side */
+        display: none;
         width: 100%;
-        gap: 1.5rem; /* Space between preview and result */
-        padding: 1rem; /* Padding for the overall container */
-        align-items: flex-start; /* Align items at the top */
+        gap: 1.5rem;
+        padding: 1rem;
+        align-items: flex-start;
     }
 
     #cameraPreviewColumn {
-        flex: 1; /* Takes up half the space */
+        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
     }
 
     #cameraResultArea {
-        flex: 1; /* Takes up the other half */
-        display: none; /* Hidden until detection starts */
-       /* border: 1px solid #e0e0e0; */
-       /* background-color: #f8f9fa; */
-        padding: 0rem 1rem 1rem 1rem; /* Padding inside the result area */
-        border-radius: 8px;
-        min-height: 360px; /* Match preview height */
-        display: flex; /* Use flexbox to center content vertically if needed */
+        flex: 1;
+        display: flex;
         flex-direction: column;
-       /* justify-content: center; */ /* Center content vertically */
-        align-items: center; /* Center content horizontally */
-        text-align: center;
+        align-items: center;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        min-height: 360px;
     }
-     #cameraResultArea h4 {
+
+    #cameraResultContent {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #cameraResultContent img {
+        max-width: 100%;
+        max-height: 300px;
+        margin-bottom: 1rem;
+        border-radius: 4px;
+    }
+
+    .detection-info {
+        width: 100%;
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .detection-status {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .status-fall {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .status-normal {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .detection-stats {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 0.5rem 1rem;
+        background-color: #fff;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    .stat-label {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+
+    /* 添加超参数调整面板样式 */
+    .params-panel {
+        margin-top: 2rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .params-panel h4 {
         margin-bottom: 1rem;
         color: #333;
         font-size: 1.1em;
     }
 
-    #cameraResultContent img {
-        max-width: 100%; /* Ensure result image fits */
-        max-height: 300px; /* Limit result image height */
+    .param-group {
+        margin-bottom: 1rem;
+    }
+
+    .param-group label {
         display: block;
-        margin: 0 auto 0.5rem auto; /* Center image and add bottom margin */
-    }
-     #cameraResultContent p {
-         font-size: 0.9em;
-         color: #555;
-     }
-     #cameraResultContent .message-error p { /* Style error messages in camera result */
-        color: #721c24;
-        font-weight: bold;
-     }
-
-
-    #cameraDetectButtonContainer {
-        text-align: center;
-        margin-top: 1rem;
-    }
-    #cameraDetectButtonContainer .upload-btn {
-        margin: 5px;
-    }
-
-    /* Keep webcam preview constrained */
-    #webcam {
-        max-width: 100%; /* Fill the column width */
-        max-height: 360px;
-        display: block;
-        border-radius: 5px; /* Optional: round corners */
-    }
-
-     /* Adjust file layout container */
-     #fileLayoutContainer {
-        padding: 1rem;
-     }
-     #initialMessage {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: #6c757d;
-        font-size: 1.1em;
-     }
-
-    /* 添加检测框信息样式 */
-    .detection-info {
-        margin-top: 1rem;
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        max-width: 640px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .detection-info h4 {
         margin-bottom: 0.5rem;
-        color: #333;
+        color: #555;
+        font-size: 0.9em;
     }
 
-    .box-info {
-        margin: 0.5rem 0;
-        padding: 0.5rem;
-        background-color: #fff;
-        border: 1px solid #dee2e6;
+    .param-group input[type="range"] {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .param-group .value-display {
+        font-size: 0.8em;
+        color: #666;
+        text-align: right;
+    }
+
+    .param-group input[type="number"] {
+        width: 100%;
+        padding: 0.3rem;
+        border: 1px solid #ddd;
         border-radius: 4px;
     }
 
-    .box-info p {
-        margin: 0.2rem 0;
-        font-size: 0.9rem;
+    .apply-params {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
     }
 
-    .confidence-high {
-        color: #28a745;
-    }
-
-    .confidence-medium {
-        color: #ffc107;
-    }
-
-    .confidence-low {
-        color: #dc3545;
+    .apply-params:hover {
+        background-color: #0056b3;
     }
 
 </style>
@@ -365,6 +395,27 @@
                 <img src="{% static 'images/image-icon.png' %}" alt="图片检测">
                 <span>图片检测</span>
             </div>
+        </div>
+
+        <!-- 添加超参数调整面板 -->
+        <div class="params-panel">
+            <h4>检测参数设置</h4>
+            <div class="param-group">
+                <label for="iouThreshold">IoU 阈值</label>
+                <input type="range" id="iouThreshold" min="0.1" max="0.9" step="0.1" value="0.5">
+                <div class="value-display">当前值: <span id="iouValue">0.5</span></div>
+            </div>
+            <div class="param-group">
+                <label for="confThreshold">置信度阈值</label>
+                <input type="range" id="confThreshold" min="0.1" max="0.9" step="0.1" value="0.5">
+                <div class="value-display">当前值: <span id="confValue">0.5</span></div>
+            </div>
+            <div class="param-group">
+                <label for="imageSize">图像大小</label>
+                <input type="number" id="imageSize" min="320" max="1280" step="32" value="640">
+                <div class="value-display">像素</div>
+            </div>
+            <button class="apply-params" onclick="applyDetectionParams()">应用参数</button>
         </div>
 
         <div id="uploadSection" class="upload-section">
@@ -392,10 +443,24 @@
                     <button type="button" id="stopCamDetectBtn" class="upload-btn" onclick="stopCameraDetection()" style="display: none; background-color: #dc3545;">停止检测</button>
                 </div>
             </div>
-            <div id="cameraResultArea" style="display: none;">
+            <div id="cameraResultArea">
                 <h4>实时检测结果</h4>
                 <div id="cameraResultContent">
-                    <!-- Camera results/errors injected here -->
+                    <div class="detection-status" style="display: none;"></div>
+                    <div class="detection-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalFrames">0</div>
+                            <div class="stat-label">总帧数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="fallFrames">0</div>
+                            <div class="stat-label">跌倒帧数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="normalFrames">0</div>
+                            <div class="stat-label">正常帧数</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -444,6 +509,45 @@
 
     let cameraIntervalId = null;
     const CAMERA_INTERVAL = 1000; // 1 seconds
+
+    // 添加参数调整相关的变量和函数
+    let detectionParams = {
+        iou: 0.5,
+        conf: 0.5,
+        size: 640
+    };
+
+    // 添加检测统计变量
+    let detectionStats = {
+        totalFrames: 0,
+        fallFrames: 0,
+        normalFrames: 0
+    };
+
+    // 初始化参数显示
+    document.getElementById('iouThreshold').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        document.getElementById('iouValue').textContent = value.toFixed(1);
+        detectionParams.iou = value;
+    });
+
+    document.getElementById('confThreshold').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        document.getElementById('confValue').textContent = value.toFixed(1);
+        detectionParams.conf = value;
+    });
+
+    document.getElementById('imageSize').addEventListener('input', function(e) {
+        const value = parseInt(e.target.value);
+        detectionParams.size = value;
+    });
+
+    function applyDetectionParams() {
+        // 更新检测参数
+        console.log('应用新的检测参数:', detectionParams);
+        // 这里可以添加参数应用成功的提示
+        alert('检测参数已更新！');
+    }
 
     fileInput.addEventListener('change', (e) => {
         const detectionType = document.getElementById('detection_type').value;
@@ -516,6 +620,11 @@
         const file = fileInput.files[0];
         const detectionType = document.getElementById('detection_type').value;
         
+        // 添加检测参数到formData
+        formData.append('iou', detectionParams.iou);
+        formData.append('conf', detectionParams.conf);
+        formData.append('size', detectionParams.size);
+        
         if (detectionType === 'camera') {
             console.warn("startDetection called for camera, use startCameraDetection instead.");
             return;
@@ -583,6 +692,30 @@
         });
     }
 
+    function updateDetectionStats(boxes) {
+        detectionStats.totalFrames++;
+        const hasFall = boxes.some(box => box.class === 0);
+        if (hasFall) {
+            detectionStats.fallFrames++;
+        } else {
+            detectionStats.normalFrames++;
+        }
+        
+        // 更新统计显示
+        document.getElementById('totalFrames').textContent = detectionStats.totalFrames;
+        document.getElementById('fallFrames').textContent = detectionStats.fallFrames;
+        document.getElementById('normalFrames').textContent = detectionStats.normalFrames;
+    }
+
+    function updateDetectionStatus(boxes) {
+        const statusDiv = document.querySelector('.detection-status');
+        const hasFall = boxes.some(box => box.class === 0);
+        
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'detection-status ' + (hasFall ? 'status-fall' : 'status-normal');
+        statusDiv.textContent = hasFall ? '检测到跌倒！' : '状态正常';
+    }
+
     function startCameraDetection() {
         if (!webcamElement.srcObject || !webcamElement.srcObject.active) {
             handleError('摄像头未启动或无视频流');
@@ -597,15 +730,94 @@
             return;
         }
 
-        console.log("启动摄像头实时检测 (每 5 秒)...");
+        // 重置检测统计
+        detectionStats = {
+            totalFrames: 0,
+            fallFrames: 0,
+            normalFrames: 0
+        };
+        updateDetectionStats([]);
+
+        console.log("启动摄像头实时检测");
         startCamDetectBtn.disabled = true;
         stopCamDetectBtn.style.display = 'inline-block';
         stopCamDetectBtn.disabled = false;
-        resultSection.style.display = 'block';
-        resultContent.innerHTML = '<p>等待第一次检测结果...</p>';
         cameraPreviewDiv.classList.add('detecting');
+        document.getElementById('cameraResultArea').style.display = 'flex';
 
         cameraIntervalId = setInterval(captureAndSendFrame, CAMERA_INTERVAL);
+    }
+
+    function captureAndSendFrame() {
+        if (!webcamElement.srcObject || !webcamElement.srcObject.active || webcamElement.paused || webcamElement.ended) {
+            console.warn("视频流无效，停止检测");
+            stopCameraDetection();
+            return;
+        }
+        if (webcamElement.readyState < webcamElement.HAVE_ENOUGH_DATA) {
+            console.warn('摄像头数据不足，跳过此帧');
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        try {
+            canvas.width = webcamElement.videoWidth;
+            canvas.height = webcamElement.videoHeight;
+            if (canvas.width === 0 || canvas.height === 0) {
+                console.warn("无效的视频尺寸，跳过此帧");
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+            console.error("绘制 Canvas 出错:", e);
+            stopCameraDetection();
+            handleError("无法从摄像头绘制图像");
+            return;
+        }
+
+        canvas.toBlob(blob => {
+            if (!blob) {
+                console.error("无法从Canvas创建Blob");
+                return;
+            }
+            const formData = new FormData();
+            formData.append('detection_type', 'camera');
+            formData.append('file', blob, `cam_frame_${Date.now()}.jpg`);
+            formData.append('iou', detectionParams.iou);
+            formData.append('conf', detectionParams.conf);
+            formData.append('size', detectionParams.size);
+
+            fetch('{% url "detection_view" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.type === 'camera') {
+                    const resultContent = document.getElementById('cameraResultContent');
+                    resultContent.innerHTML = `
+                        <img src="${data.result_image}?t=${Date.now()}" alt="检测结果">
+                        ${displayDetectionInfo(data.boxes)}
+                    `;
+                    updateDetectionStats(data.boxes);
+                    updateDetectionStatus(data.boxes);
+                } else {
+                    console.error("单帧处理失败:", data.message);
+                }
+            })
+            .catch(error => {
+                console.error('摄像头帧发送/处理错误:', error);
+            });
+        }, 'image/jpeg', 0.8);
     }
 
     function stopCameraDetection() {
@@ -617,75 +829,6 @@
         startCamDetectBtn.disabled = false;
         stopCamDetectBtn.style.display = 'none';
         cameraPreviewDiv.classList.remove('detecting');
-    }
-
-    function captureAndSendFrame() {
-        if (!webcamElement.srcObject || !webcamElement.srcObject.active || webcamElement.paused || webcamElement.ended) {
-             console.warn("视频流无效，停止检测");
-             stopCameraDetection();
-             return;
-        }
-         if (webcamElement.readyState < webcamElement.HAVE_ENOUGH_DATA) {
-            console.warn('摄像头数据不足，跳过此帧');
-            return;
-        }
-
-        const canvas = document.createElement('canvas');
-        try {
-            canvas.width = webcamElement.videoWidth;
-            canvas.height = webcamElement.videoHeight;
-             if (canvas.width === 0 || canvas.height === 0) {
-                console.warn("无效的视频尺寸，跳过此帧");
-                return;
-            }
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
-        } catch (e) {
-             console.error("绘制 Canvas 出错:", e);
-             stopCameraDetection();
-             handleError("无法从摄像头绘制图像");
-             return;
-        }
-
-        canvas.toBlob(blob => {
-            if (!blob) {
-                console.error("无法从Canvas创建Blob");
-                return;
-            }
-            const formData = new FormData();
-            formData.append('detection_type', 'camera');
-            formData.append('file', blob, `cam_frame_${Date.now()}.jpg`);
-
-            fetch('{% url "detection_view" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-            .then(response => {
-                 if (!response.ok) {
-                     throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
-                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success && data.type === 'camera') {
-                    resultContent.innerHTML = `
-                        <img src="${data.result_image}?t=${Date.now()}" alt="检测结果" style="max-width: 100%; height: auto;">
-                        <p>${data.message}</p>
-                        ${displayDetectionInfo(data.boxes)}
-                    `;
-                } else {
-                    console.error("单帧处理失败:", data.message);
-                    resultContent.innerHTML = `<p class="message message-error">处理失败: ${data.message || '未知错误'}</p>`;
-                }
-            })
-            .catch(error => {
-                 console.error('摄像头帧发送/处理错误:', error);
-                 resultContent.innerHTML = `<p class="message message-error">请求错误: ${error.message}</p>`;
-            });
-        }, 'image/jpeg', 0.8);
     }
 
     function handleError(error) {
