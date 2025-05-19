@@ -433,7 +433,7 @@
     </div>
 
     <div class="result-container">
-        <div id="cameraLayoutContainer" style="display: none;">
+        <div id="cameraLayoutContainer">
             <div id="cameraPreviewColumn">
                 <div id="cameraPreview" style="margin-bottom: 1rem;">
                     <video id="webcam" autoplay playsinline></video>
@@ -710,7 +710,6 @@
     function updateDetectionStatus(boxes) {
         const statusDiv = document.querySelector('.detection-status');
         const hasFall = boxes.some(box => box.class === 0);
-        
         statusDiv.style.display = 'block';
         statusDiv.className = 'detection-status ' + (hasFall ? 'status-fall' : 'status-normal');
         statusDiv.textContent = hasFall ? '检测到跌倒！' : '状态正常';
