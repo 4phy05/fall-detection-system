@@ -744,6 +744,13 @@
         cameraPreviewDiv.classList.add('detecting');
         document.getElementById('cameraResultArea').style.display = 'flex';
 
+        // 清除可能存在的旧定时器
+        if (cameraIntervalId) {
+            clearInterval(cameraIntervalId);
+            cameraIntervalId = null;
+        }
+
+        // 启动新的检测循环
         cameraIntervalId = setInterval(captureAndSendFrame, CAMERA_INTERVAL);
     }
 
@@ -825,9 +832,31 @@
             cameraIntervalId = null;
             console.log("停止摄像头实时检测");
         }
+        
+        // 重置按钮状态
         startCamDetectBtn.disabled = false;
         stopCamDetectBtn.style.display = 'none';
         cameraPreviewDiv.classList.remove('detecting');
+        
+        // 清空检测结果
+        const resultContent = document.getElementById('cameraResultContent');
+        resultContent.innerHTML = `
+            <div class="detection-status" style="display: none;"></div>
+            <div class="detection-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalFrames">0</div>
+                    <div class="stat-label">总帧数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="fallFrames">0</div>
+                    <div class="stat-label">跌倒帧数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="normalFrames">0</div>
+                    <div class="stat-label">正常帧数</div>
+                </div>
+            </div>
+        `;
     }
 
     function handleError(error) {
@@ -843,54 +872,94 @@
         cameraPreviewDiv.classList.remove('detecting'); // Remove indicator
     }
 
-    function activateCamera() {
-        stopCamera(); // 停止任何现有流
-        stopCameraDetection(); // 停止任何现有检测循环
-        document.getElementById('detection_type').value = 'camera';
-        uploadSection.style.display = 'none';
-        previewSection.style.display = 'none';
-        resultSection.style.display = 'none'; // 初始隐藏结果区
-        resultContent.innerHTML = ''; // 清空旧结果
-        cameraLayoutContainer.style.display = 'flex'; // 显示包含预览和按钮的容器
-        startCamDetectBtn.disabled = false; // 重置按钮状态
-        stopCamDetectBtn.style.display = 'none';
-        cameraPreviewDiv.classList.remove('detecting'); // Ensure indicator is off
+    function resetCameraDetection() {
+        // 停止检测循环
+        if (cameraIntervalId) {
+            clearInterval(cameraIntervalId);
+            cameraIntervalId = null;
+        }
+        
+        // 重置所有状态
+        detectionStats = {
+            totalFrames: 0,
+            fallFrames: 0,
+            normalFrames: 0
+        };
+        // ... 其他重置逻辑
+    }
 
+    function activateCamera() {
+        // 停止现有流和检测
+        stopCamera();
+        resetCameraDetection();
+        
+        // 隐藏文件上传区域
+        document.getElementById('uploadSection').style.display = 'none';
+        
+        // 隐藏其他界面
+        document.getElementById('fileLayoutContainer').style.display = 'none';
+        
+        // 显示摄像头界面
+        cameraLayoutContainer.style.display = 'flex';
 
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => {
                 webcamElement.srcObject = stream;
-                webcamElement.play().catch(e => console.error("播放错误:",e)); // 添加播放错误处理
+                webcamElement.onloadedmetadata = () => {
+                    webcamElement.play();
+                };
             })
             .catch(err => {
                 alert('无法访问摄像头：' + err);
                 cameraLayoutContainer.style.display = 'none';
+                document.getElementById('fileLayoutContainer').style.display = 'block';
+                document.getElementById('uploadSection').style.display = 'block';
             });
     }
 
     function activateVideoUpload() {
+        // 停止摄像头并重置检测状态
         stopCamera();
-        stopCameraDetection();
+        resetCameraDetection();
+        
+        // 设置检测类型
         document.getElementById('detection_type').value = 'video';
+        
+        // 隐藏摄像头界面
         cameraLayoutContainer.style.display = 'none';
+        
+        // 显示文件上传界面
+        document.getElementById('fileLayoutContainer').style.display = 'block';
         resultSection.style.display = 'none';
         previewSection.style.display = 'none';
         uploadSection.style.display = 'block';
         uploadDetectButton.style.display = 'inline-block';
+        
+        // 设置文件类型
         document.getElementById('fileInput').accept = 'video/mp4, video/avi';
         document.getElementById('formatHint').textContent = '支持的格式：视频(mp4, avi)';
         fileInput.value = '';
     }
 
     function activateImageUpload() {
+        // 停止摄像头并重置检测状态
         stopCamera();
-        stopCameraDetection();
+        resetCameraDetection();
+        
+        // 设置检测类型
         document.getElementById('detection_type').value = 'image';
+        
+        // 隐藏摄像头界面
         cameraLayoutContainer.style.display = 'none';
+        
+        // 显示文件上传界面
+        document.getElementById('fileLayoutContainer').style.display = 'block';
         resultSection.style.display = 'none';
         previewSection.style.display = 'none';
         uploadSection.style.display = 'block';
         uploadDetectButton.style.display = 'inline-block';
+        
+        // 设置文件类型
         document.getElementById('fileInput').accept = 'image/jpeg, image/png, image/jpg';
         document.getElementById('formatHint').textContent = '支持的格式：图片(jpg, png, jpeg)';
         fileInput.value = '';
@@ -906,7 +975,7 @@
     // 页面卸载时确保停止摄像头和定时器
     window.addEventListener('beforeunload', () => {
         stopCamera();
-        stopCameraDetection();
+        resetCameraDetection();
     });
 </script>
 {% endblock %} 
