@@ -715,6 +715,46 @@
         statusDiv.textContent = hasFall ? '检测到跌倒！' : '状态正常';
     }
 
+    function resetCameraDetection() {
+        // 停止检测循环
+        if (cameraIntervalId) {
+            clearInterval(cameraIntervalId);
+            cameraIntervalId = null;
+        }
+        
+        // 重置所有状态
+        detectionStats = {
+            totalFrames: 0,
+            fallFrames: 0,
+            normalFrames: 0
+        };
+        
+        // 重置按钮状态
+        startCamDetectBtn.disabled = false;
+        stopCamDetectBtn.style.display = 'none';
+        cameraPreviewDiv.classList.remove('detecting');
+        
+        // 重置检测结果显示
+        const resultContent = document.getElementById('cameraResultContent');
+        resultContent.innerHTML = `
+            <div class="detection-status" style="display: none;"></div>
+            <div class="detection-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalFrames">0</div>
+                    <div class="stat-label">总帧数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="fallFrames">0</div>
+                    <div class="stat-label">跌倒帧数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="normalFrames">0</div>
+                    <div class="stat-label">正常帧数</div>
+                </div>
+            </div>
+        `;
+    }
+
     function startCameraDetection() {
         if (!webcamElement.srcObject || !webcamElement.srcObject.active) {
             handleError('摄像头未启动或无视频流');
@@ -729,13 +769,8 @@
             return;
         }
 
-        // 重置检测统计
-        detectionStats = {
-            totalFrames: 0,
-            fallFrames: 0,
-            normalFrames: 0
-        };
-        updateDetectionStats([]);
+        // 重置所有状态
+        resetCameraDetection();
 
         console.log("启动摄像头实时检测");
         startCamDetectBtn.disabled = true;
@@ -743,12 +778,6 @@
         stopCamDetectBtn.disabled = false;
         cameraPreviewDiv.classList.add('detecting');
         document.getElementById('cameraResultArea').style.display = 'flex';
-
-        // 清除可能存在的旧定时器
-        if (cameraIntervalId) {
-            clearInterval(cameraIntervalId);
-            cameraIntervalId = null;
-        }
 
         // 启动新的检测循环
         cameraIntervalId = setInterval(captureAndSendFrame, CAMERA_INTERVAL);
@@ -827,6 +856,7 @@
     }
 
     function stopCameraDetection() {
+        // 停止检测循环
         if (cameraIntervalId) {
             clearInterval(cameraIntervalId);
             cameraIntervalId = null;
@@ -837,26 +867,6 @@
         startCamDetectBtn.disabled = false;
         stopCamDetectBtn.style.display = 'none';
         cameraPreviewDiv.classList.remove('detecting');
-        
-        // 清空检测结果
-        const resultContent = document.getElementById('cameraResultContent');
-        resultContent.innerHTML = `
-            <div class="detection-status" style="display: none;"></div>
-            <div class="detection-stats">
-                <div class="stat-item">
-                    <div class="stat-value" id="totalFrames">0</div>
-                    <div class="stat-label">总帧数</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="fallFrames">0</div>
-                    <div class="stat-label">跌倒帧数</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="normalFrames">0</div>
-                    <div class="stat-label">正常帧数</div>
-                </div>
-            </div>
-        `;
     }
 
     function handleError(error) {
@@ -870,22 +880,6 @@
         `;
          stopCameraDetection(); // 出错时确保停止实时检测
         cameraPreviewDiv.classList.remove('detecting'); // Remove indicator
-    }
-
-    function resetCameraDetection() {
-        // 停止检测循环
-        if (cameraIntervalId) {
-            clearInterval(cameraIntervalId);
-            cameraIntervalId = null;
-        }
-        
-        // 重置所有状态
-        detectionStats = {
-            totalFrames: 0,
-            fallFrames: 0,
-            normalFrames: 0
-        };
-        // ... 其他重置逻辑
     }
 
     function activateCamera() {
